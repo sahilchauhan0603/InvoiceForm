@@ -1,0 +1,17 @@
+# Node
+node_modules/
+npm-debug.log
+
+# Environment
+.env
+
+# Vite
+client/dist/
+client/.env
+
+# IDE
+.vscode/
+.idea/
+
+# Mac
+.DS_Store
