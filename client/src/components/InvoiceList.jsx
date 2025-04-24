@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
+const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 const InvoiceList = () => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -9,7 +10,7 @@ const InvoiceList = () => {
   useEffect(() => {
     const fetchInvoices = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/invoice');
+        const response = await axios.get(`${backendUrl}/api/invoice`);
         setInvoices(response.data);
       } catch (err) {
         setError('Failed to fetch invoices');
@@ -61,7 +62,7 @@ const InvoiceList = () => {
                 </td>
                 <td className="py-3 px-4 border-b">
                   <button 
-                    onClick={() => window.open(`http://localhost:5000/${invoice.file}`, '_blank')}
+                    onClick={() => window.open(`${backendUrl}/${invoice.file}`, '_blank')}
                     className="text-blue-600 hover:underline"
                   >
                     View Invoice

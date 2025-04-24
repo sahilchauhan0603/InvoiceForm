@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import axios from 'axios';
 
+const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+
 const InvoiceForm = () => {
   const fileInputRef = useRef();
   const [filePreviewURL, setFilePreviewURL] = useState(null);
-
+  
   const [formData, setFormData] = useState({
     name: '',
     mobile: '',
@@ -69,6 +71,7 @@ const InvoiceForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    
     if (!formData.file) {
       alert('Please upload an invoice file');
       return;
@@ -85,7 +88,7 @@ const InvoiceForm = () => {
     data.append('file', formData.file);
   
     try {
-      await axios.post('http://localhost:5000/api/invoice', data, {
+      await axios.post(`${backendUrl}/api/invoice`, data, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       
