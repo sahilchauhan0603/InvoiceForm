@@ -107,4 +107,61 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// DELETE /api/invoice/:id
+router.delete('/', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const invoice = await Invoice.findOne({ email });
+
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found for this email' });
+    }
+
+    if (invoice.status === 'pending') {
+      return res.status(400).json({ message: 'Pending invoices cannot be deleted' });
+    }
+
+    await Invoice.findOneAndDelete({ email });
+    res.json({ message: 'Invoice deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+// POST /api/invoice/pay
+router.post('/pay', async (req, res) => {
+  try {
+    const { email, amount } = req.body;
+
+    const invoice = await Invoice.findOne({ email });
+
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found' });
+    }
+
+    if (invoice.status !== 'pending') {
+      return res.status(400).json({ message: 'Only pending invoices can be paid' });
+    }
+
+    invoice.amountPaid += parseFloat(amount);
+
+    if (invoice.amountPaid >= invoice.totalAmount) {
+      invoice.status = 'paid';
+    }
+
+    await invoice.save();
+    res.json(invoice);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
 module.exports = router;
