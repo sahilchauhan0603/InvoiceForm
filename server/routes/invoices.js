@@ -4,7 +4,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const Invoice = require('../models/Invoice');
-const { authenticateUser } = require('../middleware/authMiddleware');
+// const { authenticateUser } = require('../middleware/authMiddleware');
 
 // Configure Multer for file uploads
 const storage = multer.diskStorage({
@@ -97,7 +97,7 @@ router.post('/', upload.single('file'), async (req, res) => {
 });
 
 // Get single invoice
-router.get('/:id', authenticateUser, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const invoice = await Invoice.findById(req.params.id);
     
@@ -116,7 +116,7 @@ router.get('/:id', authenticateUser, async (req, res) => {
 });
 
 // Delete invoice
-router.delete('/', authenticateUser, async (req, res) => {
+router.delete('/', async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -124,7 +124,7 @@ router.delete('/', authenticateUser, async (req, res) => {
       return res.status(400).json({ message: 'Email is required' });
     }
 
-    const invoice = await Invoice.findOne({ email, userId: req.user.userId });
+    const invoice = await Invoice.findOne({ email });
 
     if (!invoice) {
       return res.status(404).json({ message: 'Invoice not found for this email' });
@@ -134,7 +134,7 @@ router.delete('/', authenticateUser, async (req, res) => {
       return res.status(400).json({ message: 'Pending invoices cannot be deleted' });
     }
 
-    await Invoice.findOneAndDelete({ email, userId: req.user.userId });
+    await Invoice.findOneAndDelete({ email});
     res.json({ message: 'Invoice deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -142,11 +142,11 @@ router.delete('/', authenticateUser, async (req, res) => {
 });
 
 // Pay invoice
-router.post('/pay', authenticateUser, async (req, res) => {
+router.post('/pay', async (req, res) => {
   try {
     const { email, amount } = req.body;
 
-    const invoice = await Invoice.findOne({ email, userId: req.user.userId });
+    const invoice = await Invoice.findOne({ email });
 
     if (!invoice) {
       return res.status(404).json({ message: 'Invoice not found' });
