@@ -164,14 +164,14 @@ const Login = () => {
                 </button>
               </div>
               
-              <div className="mt-2 text-center">
+              {/* <div className="mt-2 text-center">
                 <button
                   onClick={() => navigate('/forgot-password')}
                   className="text-sm text-blue-600 hover:underline focus:outline-none"
                 >
                   Forgot password?
                 </button>
-              </div>
+              </div> */}
             </div>
           </div>
         </div>
