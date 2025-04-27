@@ -34,7 +34,8 @@ function AppContent() {
   }
 
   // If not logged in and not on auth pages, redirect to login
-  if (!user && !['/login', '/signup', '/forgot-password', '/reset-password'].includes(location.pathname)) {
+  const authPages = ['/login', '/signup', '/forgot-password', '/reset-password', '/reset-password/*'];
+  if (!user && !authPages.some(page => location.pathname.startsWith(page))) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
@@ -58,31 +59,25 @@ function AppContent() {
       {/* Unified Routes */}
       <main className="w-full max-w-4xl mx-auto">
         <Routes>
+          {/* Common pages - accessible regardless of auth status */}
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
+          
           {/* Authenticated routes */}
           {user && (
             <>
               <Route path="/" element={<InvoiceForm />} />
               <Route path="/invoices" element={<InvoiceList />} />
+              <Route path="/login" element={<Navigate to="/" replace />} />
+              <Route path="/signup" element={<Navigate to="/" replace />} />
             </>
           )}
           
-          {/* Auth pages */}
+          {/* Auth pages for non-authenticated users */}
           {!user && (
             <>
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
-            </>
-          )}
-          
-          {/* Common pages */}
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password/:token" element={<ResetPassword />} />
-          
-          {/* Redirects */}
-          {user && (
-            <>
-              <Route path="/login" element={<Navigate to="/" replace />} />
-              <Route path="/signup" element={<Navigate to="/" replace />} />
             </>
           )}
           
