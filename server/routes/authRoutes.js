@@ -223,32 +223,65 @@ const generateResetToken = () => {
 };
 
 // 1. Request Password Reset
+// 1. Request Password Reset
 router.post('/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
+    
+    // Validate email input
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ message: 'Please provide a valid email address' });
+    }
+
     const user = await User.findOne({ email });
 
+    // Return same success message whether user exists or not (security best practice)
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      console.log(`Password reset requested for non-existent email: ${email}`); // Log for admin
+      return res.json({ message: 'If an account exists, a password reset email has been sent' });
     }
 
     // Generate and save reset token
-    const resetToken = generateResetToken();
+    const resetToken = crypto.randomBytes(32).toString('hex');
     user.resetToken = resetToken;
     user.resetTokenExpires = Date.now() + 3600000; // 1 hour expiry
+    
     await user.save();
 
     // Send email
-    const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
-    await sendEmail({
-      to: user.email,
-      subject: 'Password Reset Request',
-      html: `Click <a href="${resetUrl}">here</a> to reset your password. Link expires in 1 hour.`
-    });
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: 'Password Reset Request',
+        html: `
+          <p>You requested a password reset for your account.</p>
+          <p>Click <a href="${resetUrl}">here</a> to reset your password.</p>
+          <p>This link will expire in 1 hour.</p>
+          <p>If you didn't request this, please ignore this email.</p>
+        `
+      });
+      console.log(`Password reset email sent to: ${user.email}`);
+    } catch (emailError) {
+      console.error('Failed to send password reset email:', emailError);
+      // Roll back the token if email fails
+      user.resetToken = undefined;
+      user.resetTokenExpires = undefined;
+      await user.save();
+      throw new Error('Failed to send password reset email');
+    }
 
-    res.json({ message: 'Password reset email sent' });
+    res.json({ 
+      success: true,
+      message: 'If an account exists, a password reset email has been sent'
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error sending reset email' });
+    console.error('Forgot password error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Error processing password reset request',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
@@ -258,13 +291,22 @@ router.post('/reset-password/:token', async (req, res) => {
     const { token } = req.params;
     const { password } = req.body;
 
+    console.log('Reset password request for token:', token); // Debug log
+
+    if (!password || password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
     const user = await User.findOne({
       resetToken: token,
       resetTokenExpires: { $gt: Date.now() }
     });
 
     if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired token' });
+      console.log('Invalid or expired token:', token); // Debug log
+      return res.status(400).json({ 
+        message: 'Invalid or expired token. Please request a new password reset.' 
+      });
     }
 
     // Update password
@@ -272,11 +314,22 @@ router.post('/reset-password/:token', async (req, res) => {
     user.password = await bcrypt.hash(password, salt);
     user.resetToken = undefined;
     user.resetTokenExpires = undefined;
+    
     await user.save();
 
-    res.json({ message: 'Password updated successfully' });
+    console.log('Password reset successful for user:', user.email); // Debug log
+    
+    res.json({ 
+      success: true,
+      message: 'Password updated successfully. You can now login with your new password.' 
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error resetting password' });
+    console.error('Reset password error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Error resetting password',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
