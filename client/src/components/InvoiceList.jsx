@@ -4,6 +4,7 @@ import PaymentForm from './PaymentForm';
 import { motion } from 'framer-motion';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+// const backendUrl = 'http://localhost:5000';
 
 const statusColors = {
   paid: { bg: 'bg-green-100', text: 'text-green-800', icon: '✅' },

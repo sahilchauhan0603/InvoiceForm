@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
 const invoiceRoutes = require('./routes/invoices');
+const authRoutes = require('./routes/authRoutes');
 const path = require('path');
 
 const app = express();
@@ -20,6 +21,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
 app.use('/api/invoice', invoiceRoutes);
+
+app.use('/api/auth', authRoutes); 
 
 // Error handling middleware
 app.use((err, req, res, next) => {

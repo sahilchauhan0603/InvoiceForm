@@ -1,9 +1,10 @@
+// routes/invoiceRoutes.js
 const express = require('express');
+const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const Invoice = require('../models/Invoice');
-
-const router = express.Router();
+const { authenticateUser } = require('../middleware/authMiddleware');
 
 // Configure Multer for file uploads
 const storage = multer.diskStorage({
@@ -37,7 +38,18 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
 });
 
-// Create a new invoice
+
+// Get all invoices
+router.get('/', async (req, res) => {
+  try {
+    const invoices = await Invoice.find().sort({ createdAt: -1 });
+    res.json(invoices);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Create new invoice
 router.post('/', upload.single('file'), async (req, res) => {
   try {
     const {
@@ -84,31 +96,27 @@ router.post('/', upload.single('file'), async (req, res) => {
   }
 });
 
-// Get all invoices
-router.get('/', async (req, res) => {
-  try {
-    const invoices = await Invoice.find().sort({ createdAt: -1 });
-    res.json(invoices);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-});
-
 // Get single invoice
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticateUser, async (req, res) => {
   try {
     const invoice = await Invoice.findById(req.params.id);
+    
     if (!invoice) {
       return res.status(404).json({ message: 'Invoice not found' });
     }
+
+    if (invoice.userId !== req.user.userId && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized to access this invoice' });
+    }
+
     res.json(invoice);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
-// DELETE /api/invoice/:id
-router.delete('/', async (req, res) => {
+// Delete invoice
+router.delete('/', authenticateUser, async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -116,7 +124,7 @@ router.delete('/', async (req, res) => {
       return res.status(400).json({ message: 'Email is required' });
     }
 
-    const invoice = await Invoice.findOne({ email });
+    const invoice = await Invoice.findOne({ email, userId: req.user.userId });
 
     if (!invoice) {
       return res.status(404).json({ message: 'Invoice not found for this email' });
@@ -126,20 +134,19 @@ router.delete('/', async (req, res) => {
       return res.status(400).json({ message: 'Pending invoices cannot be deleted' });
     }
 
-    await Invoice.findOneAndDelete({ email });
+    await Invoice.findOneAndDelete({ email, userId: req.user.userId });
     res.json({ message: 'Invoice deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
-
-// POST /api/invoice/pay
-router.post('/pay', async (req, res) => {
+// Pay invoice
+router.post('/pay', authenticateUser, async (req, res) => {
   try {
     const { email, amount } = req.body;
 
-    const invoice = await Invoice.findOne({ email });
+    const invoice = await Invoice.findOne({ email, userId: req.user.userId });
 
     if (!invoice) {
       return res.status(404).json({ message: 'Invoice not found' });
@@ -159,7 +166,7 @@ router.post('/pay', async (req, res) => {
     res.json(invoice);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
